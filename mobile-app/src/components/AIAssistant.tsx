@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Easing,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -11,162 +12,274 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import api from '../services/api';
 import { useApp } from '../context/AppContext';
 
-// ── Design tokens ─────────────────────────────────────────
-const BG     = '#0F172A';
-const CARD   = '#1E293B';
+const BG = '#0F172A';
+const CARD = '#1E293B';
 const BORDER = '#334155';
 const ACCENT = '#2563EB';
-const TEXT   = '#FFFFFF';
-const TEXT2  = '#94A3B8';
+const TEXT = '#FFFFFF';
+const TEXT2 = '#94A3B8';
 
-// ── Types ─────────────────────────────────────────────────
-interface Msg { id: string; role: 'user' | 'ai'; text: string; ts: number }
-
-const QUICK = [
-  { label: '🏍️ Recommend parts',  prompt: 'Recommend popular motorcycle parts for me.' },
-  { label: '📦 Track my order',   prompt: 'How can I track my order?' },
-  { label: '↩ Return an item',    prompt: 'How do I return an item or request a refund?' },
-  { label: '🔧 Find a mechanic',  prompt: 'Help me find a mechanic for my bike.' },
-  { label: '❓ General help',     prompt: 'What can you help me with on Finding Moto?' },
-];
-
-// ── Typing dots ───────────────────────────────────────────
-function TypingDots() {
-  const [frame, setFrame] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setFrame(f => (f + 1) % 4), 450);
-    return () => clearInterval(t);
-  }, []);
-  return <Text style={ai.dotText}>{'.'.repeat(frame + 1)}</Text>;
+interface Msg {
+  id: string;
+  role: 'user' | 'ai';
+  text: string;
+  ts: number;
 }
 
-// ── Main component ────────────────────────────────────────
+const QUICK = [
+  { label: 'Recommend parts', prompt: 'Recommend popular motorcycle parts for me.' },
+  { label: 'Track my order', prompt: 'How can I track my order?' },
+  { label: 'Return an item', prompt: 'How do I return an item or request a refund?' },
+  { label: 'Find a mechanic', prompt: 'Help me find a mechanic for my bike.' },
+  { label: 'General help', prompt: 'What can you help me with on Finding Moto?' },
+];
+
+function TypingDots() {
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setFrame((current) => (current + 1) % 4), 450);
+    return () => clearInterval(t);
+  }, []);
+
+  return <Text style={styles.dotText}>{'.'.repeat(frame + 1)}</Text>;
+}
+
 export default function AIAssistant() {
-  const { aiOpen, closeAI, toggleAI } = useApp();
+  const { aiOpen, openAI, closeAI } = useApp();
+  const insets = useSafeAreaInsets();
+  const [isOpen, setIsOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([
-    { id: '0', role: 'ai', text: "Hi! I'm Moto AI 🏍️\nHow can I help you today?", ts: Date.now() },
+    { id: '0', role: 'ai', text: "Hi! I'm Moto AI.\nHow can I help you today?", ts: Date.now() },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const flatRef = useRef<FlatList>(null);
-
-  // Slide-up animation
-  const slideY = useRef(new Animated.Value(600)).current;
+  const flatRef = useRef<FlatList<Msg>>(null);
+  const panelTranslateY = useRef(new Animated.Value(720)).current;
+  const panelOpacity = useRef(new Animated.Value(0)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
   const fabScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    Animated.spring(slideY, {
-      toValue: aiOpen ? 0 : 600,
-      useNativeDriver: true,
-      tension: 80,
-      friction: 12,
-    }).start();
+    if (aiOpen) {
+      setIsOpen(true);
+    }
   }, [aiOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      Animated.parallel([
+        Animated.timing(backdropOpacity, {
+          toValue: 1,
+          duration: 180,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.spring(panelTranslateY, {
+          toValue: 0,
+          tension: 74,
+          friction: 13,
+          useNativeDriver: true,
+        }),
+        Animated.timing(panelOpacity, {
+          toValue: 1,
+          duration: 220,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return;
+    }
+
+    Animated.parallel([
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 140,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(panelTranslateY, {
+        toValue: 720,
+        duration: 200,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(panelOpacity, {
+        toValue: 0,
+        duration: 150,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [backdropOpacity, isOpen, panelOpacity, panelTranslateY]);
+
+  const scrollToBottom = (animated: boolean) => {
+    requestAnimationFrame(() => flatRef.current?.scrollToEnd({ animated }));
+  };
+
+  const openPanel = () => {
+    setIsOpen(true);
+    if (!aiOpen) {
+      openAI();
+    }
+  };
+
+  const closePanel = () => {
+    setIsOpen(false);
+    if (aiOpen) {
+      closeAI();
+    }
+  };
 
   const pulseFab = () => {
     Animated.sequence([
       Animated.timing(fabScale, { toValue: 0.88, duration: 100, useNativeDriver: true }),
       Animated.spring(fabScale, { toValue: 1, useNativeDriver: true }),
     ]).start();
-    toggleAI();
+    openPanel();
   };
 
   const send = async (text: string) => {
-    if (!text.trim() || loading) return;
-    const userMsg: Msg = { id: String(Date.now()), role: 'user', text: text.trim(), ts: Date.now() };
-    setMsgs(prev => [...prev, userMsg]);
+    const nextText = text.trim();
+    if (!nextText || loading) return;
+
+    const userMsg: Msg = { id: String(Date.now()), role: 'user', text: nextText, ts: Date.now() };
+    setMsgs((prev) => [...prev, userMsg]);
     setInput('');
     setLoading(true);
-    setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 100);
+    scrollToBottom(true);
 
     try {
-      const { data } = await api.post('/ai/chat', { message: text.trim() });
-      const reply = data?.reply ?? data?.message ?? data?.response ?? 'Sorry, I could not get a response. Please try again.';
-      setMsgs(prev => [...prev, { id: String(Date.now() + 1), role: 'ai', text: reply, ts: Date.now() }]);
+      const { data } = await api.post('/ai/chat', { message: nextText });
+      const reply =
+        data?.data?.answer ??
+        data?.reply ??
+        data?.message ??
+        data?.response ??
+        'Sorry, I could not get a response. Please try again.';
+      setMsgs((prev) => [
+        ...prev,
+        { id: String(Date.now() + 1), role: 'ai', text: reply, ts: Date.now() },
+      ]);
     } catch {
-      setMsgs(prev => [...prev, { id: String(Date.now() + 1), role: 'ai', text: 'Sorry, I\'m having trouble connecting. Please check your connection and try again.', ts: Date.now() }]);
+      setMsgs((prev) => [
+        ...prev,
+        {
+          id: String(Date.now() + 1),
+          role: 'ai',
+          text: "Sorry, I'm having trouble connecting. Please check your connection and try again.",
+          ts: Date.now(),
+        },
+      ]);
     } finally {
       setLoading(false);
-      setTimeout(() => flatRef.current?.scrollToEnd({ animated: true }), 150);
+      setTimeout(() => scrollToBottom(true), 150);
     }
   };
 
   const formatTime = (ts: number) =>
     new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
+  const bottomInset = Math.max(insets.bottom, 10);
+  const panelBottom = bottomInset + 76;
+  const fabBottom = bottomInset + 82;
   return (
     <>
-      {/* ── Backdrop ── */}
-      {aiOpen && (
-        <Pressable style={ai.backdrop} onPress={closeAI} />
+      {isOpen && (
+        <Animated.View
+          pointerEvents="auto"
+          style={[styles.backdrop, { opacity: backdropOpacity }]}
+        >
+          <Pressable style={StyleSheet.absoluteFill} onPress={closePanel} />
+        </Animated.View>
       )}
 
-      {/* ── Slide-up Panel ── */}
-      <Animated.View style={[ai.panel, { transform: [{ translateY: slideY }] }]}>
-        {/* Header */}
-        <View style={ai.header}>
-          <View style={ai.headerLeft}>
-            <View style={ai.botAvatar}>
-              <Text style={ai.botEmoji}>🤖</Text>
+      <Animated.View
+        pointerEvents={isOpen ? 'auto' : 'none'}
+        style={[
+          styles.panel,
+          {
+            bottom: panelBottom,
+            opacity: panelOpacity,
+            transform: [{ translateY: panelTranslateY }],
+          },
+        ]}
+      >
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={styles.botAvatar}>
+              <Text style={styles.botAvatarText}>AI</Text>
             </View>
             <View>
-              <Text style={ai.headerTitle}>Moto AI Assistant</Text>
-              <View style={ai.onlineRow}>
-                <View style={ai.onlineDot} />
-                <Text style={ai.onlineText}>Online • Powered by Gemini</Text>
+              <Text style={styles.headerTitle}>Moto AI Assistant</Text>
+              <View style={styles.onlineRow}>
+                <View style={styles.onlineDot} />
+                <Text style={styles.onlineText}>Online</Text>
               </View>
             </View>
           </View>
-          <Pressable onPress={closeAI} style={ai.closeBtn}>
-            <Text style={ai.closeIcon}>✕</Text>
+          <Pressable onPress={closePanel} hitSlop={14} style={styles.closeBtn}>
+            <Text style={styles.closeIcon}>X</Text>
           </Pressable>
         </View>
 
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* Messages */}
           <FlatList
             ref={flatRef}
             data={msgs}
-            keyExtractor={m => m.id}
-            contentContainerStyle={ai.msgList}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.msgList}
             showsVerticalScrollIndicator={false}
-            onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: true })}
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => scrollToBottom(true)}
             ListHeaderComponent={
               msgs.length === 1 ? (
-                <View style={ai.quickSection}>
-                  <Text style={ai.quickTitle}>Quick Actions</Text>
-                  <View style={ai.quickGrid}>
-                    {QUICK.map(q => (
-                      <Pressable key={q.label} style={ai.quickBtn} onPress={() => send(q.prompt)}>
-                        <Text style={ai.quickBtnText}>{q.label}</Text>
+                <View style={styles.quickSection}>
+                  <Text style={styles.quickTitle}>Quick Actions</Text>
+                  <View style={styles.quickGrid}>
+                    {QUICK.map((item) => (
+                      <Pressable key={item.label} style={styles.quickBtn} onPress={() => send(item.prompt)}>
+                        <Text style={styles.quickBtnText}>{item.label}</Text>
                       </Pressable>
                     ))}
                   </View>
                 </View>
               ) : null
             }
-            renderItem={({ item: m }) => (
-              <View style={[ai.bubbleRow, m.role === 'user' ? ai.bubbleRowUser : ai.bubbleRowAI]}>
-                {m.role === 'ai' && (
-                  <View style={ai.aiBubbleAvatar}><Text style={{ fontSize: 12 }}>🤖</Text></View>
+            renderItem={({ item }) => (
+              <View
+                style={[
+                  styles.bubbleRow,
+                  item.role === 'user' ? styles.bubbleRowUser : styles.bubbleRowAI,
+                ]}
+              >
+                {item.role === 'ai' && (
+                  <View style={styles.aiBubbleAvatar}>
+                    <Text style={styles.aiBubbleAvatarText}>AI</Text>
+                  </View>
                 )}
-                <View style={[ai.bubble, m.role === 'user' ? ai.bubbleUser : ai.bubbleAI]}>
-                  <Text style={[ai.bubbleText, m.role === 'user' && { color: TEXT }]}>{m.text}</Text>
-                  <Text style={ai.bubbleTime}>{formatTime(m.ts)}</Text>
+                <View style={[styles.bubble, item.role === 'user' ? styles.bubbleUser : styles.bubbleAI]}>
+                  <Text style={[styles.bubbleText, item.role === 'user' && styles.bubbleTextUser]}>
+                    {item.text}
+                  </Text>
+                  <Text style={styles.bubbleTime}>{formatTime(item.ts)}</Text>
                 </View>
               </View>
             )}
             ListFooterComponent={
               loading ? (
-                <View style={[ai.bubbleRow, ai.bubbleRowAI]}>
-                  <View style={ai.aiBubbleAvatar}><Text style={{ fontSize: 12 }}>🤖</Text></View>
-                  <View style={ai.bubbleAI}>
+                <View style={[styles.bubbleRow, styles.bubbleRowAI]}>
+                  <View style={styles.aiBubbleAvatar}>
+                    <Text style={styles.aiBubbleAvatarText}>AI</Text>
+                  </View>
+                  <View style={styles.typingBubble}>
                     <TypingDots />
                   </View>
                 </View>
@@ -174,13 +287,12 @@ export default function AIAssistant() {
             }
           />
 
-          {/* Input bar */}
-          <View style={ai.inputBar}>
+          <View style={styles.inputBar}>
             <TextInput
-              style={ai.textInput}
+              style={styles.textInput}
               value={input}
               onChangeText={setInput}
-              placeholder="Ask Moto AI anything…"
+              placeholder="Ask Moto AI anything..."
               placeholderTextColor={TEXT2}
               onSubmitEditing={() => send(input)}
               returnKeyType="send"
@@ -188,49 +300,51 @@ export default function AIAssistant() {
               maxLength={300}
             />
             <Pressable
-              style={[ai.sendBtn, (!input.trim() || loading) && ai.sendBtnDisabled]}
+              style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
               onPress={() => send(input)}
               disabled={!input.trim() || loading}
             >
-              {loading
-                ? <ActivityIndicator color={TEXT} size="small" />
-                : <Text style={ai.sendIcon}>➤</Text>
-              }
+              {loading ? <ActivityIndicator color={TEXT} size="small" /> : <Text style={styles.sendIcon}>Go</Text>}
             </Pressable>
           </View>
         </KeyboardAvoidingView>
       </Animated.View>
 
-      {/* ── FAB ── */}
-      <Animated.View style={[ai.fab, { transform: [{ scale: fabScale }] }]}>
-        <Pressable onPress={pulseFab} style={ai.fabInner}>
-          <Text style={ai.fabEmoji}>{aiOpen ? '✕' : '🤖'}</Text>
-        </Pressable>
-      </Animated.View>
+      {!isOpen && (
+        <Animated.View style={[styles.fab, { bottom: fabBottom, transform: [{ scale: fabScale }] }]}>
+          <Pressable onPress={pulseFab} style={styles.fabInner}>
+            <Text style={styles.fabText}>AI</Text>
+          </Pressable>
+        </Animated.View>
+      )}
     </>
   );
 }
 
-// ── Styles ────────────────────────────────────────────────
-const ai = StyleSheet.create({
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    zIndex: 90,
+    backgroundColor: 'rgba(2, 6, 23, 0.58)',
+    zIndex: 800,
+    elevation: 18,
   },
   panel: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '78%',
+    left: 14,
+    right: 14,
+    height: '70%',
     backgroundColor: CARD,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    zIndex: 100,
-    borderTopWidth: 1,
+    borderRadius: 26,
+    zIndex: 900,
+    elevation: 26,
+    borderWidth: 1,
     borderColor: BORDER,
     overflow: 'hidden',
+    shadowColor: '#020617',
+    shadowOpacity: 0.42,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 16 },
   },
   header: {
     flexDirection: 'row',
@@ -243,34 +357,40 @@ const ai = StyleSheet.create({
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   botAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: ACCENT,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  botEmoji: { fontSize: 20 },
+  botAvatarText: { color: TEXT, fontWeight: '900', fontSize: 13, letterSpacing: 0.6 },
   headerTitle: { color: TEXT, fontWeight: '800', fontSize: 15 },
-  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   onlineDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#10B981' },
   onlineText: { color: '#10B981', fontSize: 11, fontWeight: '600' },
   closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: BORDER,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  closeIcon: { color: TEXT2, fontWeight: '700', fontSize: 13 },
-
+  closeIcon: { color: TEXT, fontWeight: '800', fontSize: 15 },
   msgList: { padding: 14, gap: 10, flexGrow: 1 },
   quickSection: { marginBottom: 14 },
-  quickTitle: { color: TEXT2, fontSize: 12, fontWeight: '700', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 },
+  quickTitle: {
+    color: TEXT2,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
   quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   quickBtn: {
-    backgroundColor: '#1E3A5F',
+    backgroundColor: '#16263D',
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -278,7 +398,6 @@ const ai = StyleSheet.create({
     borderColor: ACCENT,
   },
   quickBtnText: { color: '#93C5FD', fontSize: 12, fontWeight: '700' },
-
   bubbleRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
   bubbleRowUser: { justifyContent: 'flex-end' },
   bubbleRowAI: { justifyContent: 'flex-start', alignItems: 'flex-end' },
@@ -291,18 +410,28 @@ const ai = StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
+  aiBubbleAvatarText: { color: TEXT, fontSize: 10, fontWeight: '900' },
   bubble: { maxWidth: '80%', borderRadius: 18, padding: 12 },
   bubbleUser: { backgroundColor: ACCENT, borderBottomRightRadius: 4 },
-  bubbleAI: { backgroundColor: '#0F2744', borderBottomLeftRadius: 4 },
+  bubbleAI: { backgroundColor: '#13253B', borderBottomLeftRadius: 4 },
+  typingBubble: {
+    maxWidth: '80%',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: '#13253B',
+    borderBottomLeftRadius: 4,
+  },
   bubbleText: { color: TEXT2, fontSize: 14, lineHeight: 20 },
-  bubbleTime: { color: '#475569', fontSize: 10, marginTop: 4, textAlign: 'right' },
+  bubbleTextUser: { color: TEXT },
+  bubbleTime: { color: '#64748B', fontSize: 10, marginTop: 4, textAlign: 'right' },
   dotText: { color: TEXT2, fontSize: 20, letterSpacing: 4 },
-
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingTop: 10,
+    paddingBottom: 14,
     borderTopWidth: 1,
     borderTopColor: BORDER,
     gap: 10,
@@ -321,33 +450,34 @@ const ai = StyleSheet.create({
     borderColor: BORDER,
   },
   sendBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: ACCENT,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendBtnDisabled: { opacity: 0.4 },
-  sendIcon: { color: TEXT, fontSize: 17, marginLeft: 2 },
-
+  sendIcon: { color: TEXT, fontSize: 12, fontWeight: '800' },
   fab: {
     position: 'absolute',
-    bottom: 90,
     right: 20,
-    zIndex: 200,
+    zIndex: 1000,
+    elevation: 30,
     shadowColor: ACCENT,
     shadowOpacity: 0.6,
     shadowRadius: 16,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 10 },
   },
   fabInner: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: ACCENT,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#60A5FA',
   },
-  fabEmoji: { fontSize: 26 },
+  fabText: { fontSize: 17, fontWeight: '900', color: TEXT, letterSpacing: 0.4 },
 });

@@ -32,7 +32,7 @@ const MAX_RETURN_IMAGES = 8;
 
 const onlyLetters = (value: string) => value.replace(/[^A-Za-z\s.'-]/g, "");
 const onlyDigits = (value: string) => value.replace(/\D/g, "").slice(0, 16);
-const RETURNABLE_ORDER_STATUSES = new Set(["delivered", "completed"]);
+const RETURNABLE_ORDER_STATUSES = new Set(["delivered"]);
 
 const BuyerReturnsClaims = () => {
   const navigate = useNavigate();
@@ -172,8 +172,8 @@ const BuyerReturnsClaims = () => {
 
   const validate = () => {
     const nextErrors: Record<string, string> = {};
-    if (!form.orderId) nextErrors.orderId = "Select a delivered or completed order";
-    if (!selectedOrder) nextErrors.orderId = "Only delivered or completed orders that are not already returned can be selected";
+    if (!form.orderId) nextErrors.orderId = "Select a delivered order";
+    if (!selectedOrder) nextErrors.orderId = "Only delivered orders that are not already returned can be selected";
     if (!form.reason) nextErrors.reason = "Return reason is required";
     if (photos.length < MIN_RETURN_IMAGES || photos.length > MAX_RETURN_IMAGES) {
       nextErrors.referencePhotos = `Upload ${MIN_RETURN_IMAGES} to ${MAX_RETURN_IMAGES} return images`;
@@ -374,7 +374,7 @@ const BuyerReturnsClaims = () => {
                   onChange={(event) => setForm((current) => ({ ...current, orderId: event.target.value }))}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 >
-                  <option value="">Select delivered or completed order</option>
+                  <option value="">Select delivered order</option>
                   {eligibleOrders.map((order) => (
                     <option key={order._id} value={order._id}>
                       Order #{order._id.slice(-8).toUpperCase()} · LKR {order.totalAmount.toLocaleString()}
@@ -427,7 +427,7 @@ const BuyerReturnsClaims = () => {
               </div>
             ) : (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                Only delivered or completed orders that have not already been returned are eligible.
+                Only delivered orders that have not already been returned are eligible.
               </div>
             )}
 

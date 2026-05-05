@@ -39,7 +39,7 @@ import { createAuthedSocket, type OrderWorkflowSocketEvent, type ReturnWorkflowS
 import { RETURN_STATUS_LABELS, RETURN_STATUS_STYLES, type ReturnRequest } from "@/lib/returns";
 import { ReturnStatusTimeline } from "@/components/returns/ReturnStatusTimeline";
 
-const returnableProductStatuses = new Set(["delivered", "completed"]);
+const returnableProductStatuses = new Set(["delivered"]);
 const billableProductStatuses = new Set(["delivered", "completed"]);
 
 interface OrderItem {
@@ -521,6 +521,7 @@ const MyOrders: React.FC = () => {
                     const returnRequest = returnRequestByOrderId.get(order._id);
                     const hasReturnRequest = Boolean(returnRequest);
                     const canRequestReturn = returnableProductStatuses.has(order.status);
+                    const canConfirmReceipt = order.status === "delivered" && !hasReturnRequest;
                     const canViewBill = billableProductStatuses.has(order.status);
                     const isReturnExpanded = expandedReturnOrderId === order._id;
                     return (
@@ -649,7 +650,7 @@ const MyOrders: React.FC = () => {
                                 Cancel
                               </Button>
                             )}
-                            {order.status === "delivered" && (
+                            {canConfirmReceipt && (
                               <Button
                                 variant="outline"
                                 size="sm"
