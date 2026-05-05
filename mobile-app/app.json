@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Finding Moto Buyer",
+    "slug": "finding-moto-buyer",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.findingmoto.buyer"
+    },
+    "extra": {
+      "apiUrl": "http://127.0.0.1:5000/api"
+    }
+  }
+}
