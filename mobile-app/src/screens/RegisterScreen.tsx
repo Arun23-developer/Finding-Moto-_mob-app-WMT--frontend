@@ -4,17 +4,18 @@ import {
   StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
 const BG = '#0F172A'; const CARD = '#1E293B'; const BORDER = '#334155';
 const ACCENT = '#2563EB'; const TEXT = '#FFFFFF'; const TEXT2 = '#94A3B8';
 const SUCCESS = '#10B981';
 
-const emailRx    = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
-const nameRx     = /^[A-Za-z\s.'-]+$/;
-const phoneRx    = /^\d{10}$/;
+const emailRx = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+const nameRx = /^[A-Za-z\s.'-]+$/;
+const phoneRx = /^\d{10}$/;
 const strongPass = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{10,}$/;
-const blocked    = ['test.com','example.com','fake.com','mailinator.com','yopmail.com','tempmail.com'];
+const blocked = ['test.com', 'example.com', 'fake.com', 'mailinator.com', 'yopmail.com', 'tempmail.com'];
 
 const validEmail = (v: string) => {
   if (!emailRx.test(v)) return false;
@@ -24,18 +25,18 @@ const validEmail = (v: string) => {
 
 export default function RegisterScreen() {
   const { register, verifyOTP, resendOTP } = useAuth();
-  const [firstName, setFirstName]   = useState('');
-  const [lastName, setLastName]     = useState('');
-  const [email, setEmail]           = useState('');
-  const [phone, setPhone]           = useState('');
-  const [password, setPassword]     = useState('');
-  const [confirm, setConfirm]       = useState('');
-  const [otp, setOtp]               = useState(['','','','','','']);
-  const [step, setStep]             = useState<'form'|'otp'|'done'>('form');
-  const [error, setError]           = useState('');
-  const [msg, setMsg]               = useState('');
-  const [loading, setLoading]       = useState(false);
-  const [cooldown, setCooldown]     = useState(0);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [step, setStep] = useState<'form' | 'otp' | 'done'>('form');
+  const [error, setError] = useState('');
+  const [msg, setMsg] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -71,7 +72,7 @@ export default function RegisterScreen() {
       setLoading(true); setError('');
       await verifyOTP(email.trim(), code);
       setStep('done');
-    } catch (e: any) { setError(e?.response?.data?.message || e?.message || 'Invalid code.'); setOtp(['','','','','','']); }
+    } catch (e: any) { setError(e?.response?.data?.message || e?.message || 'Invalid code.'); setOtp(['', '', '', '', '', '']); }
     finally { setLoading(false); }
   };
 
@@ -83,18 +84,18 @@ export default function RegisterScreen() {
   };
 
   const updateOtp = (i: number, v: string) => {
-    const d = v.replace(/\D/g,'').slice(-1);
+    const d = v.replace(/\D/g, '').slice(-1);
     const next = [...otp]; next[i] = d; setOtp(next);
   };
 
   // ── Success ───────────────────────────────────────────
   if (step === 'done') {
     return (
-      <SafeAreaView style={s.safe} edges={['top','bottom']}>
+      <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
         <View style={s.center}>
-          <View style={s.successCircle}><Text style={s.successIcon}>✓</Text></View>
+          <View style={s.successCircle}><MaterialCommunityIcons name="check" size={36} color={TEXT} /></View>
           <Text style={s.successTitle}>Account Created!</Text>
-          <Text style={s.successSub}>Welcome to Finding Moto 🏍️</Text>
+          <Text style={s.successSub}>Welcome to Finding Moto</Text>
           <Text style={s.successNote}>Your buyer account is ready. Start exploring parts & services.</Text>
         </View>
       </SafeAreaView>
@@ -104,14 +105,14 @@ export default function RegisterScreen() {
   // ── OTP ───────────────────────────────────────────────
   if (step === 'otp') {
     return (
-      <SafeAreaView style={s.safe} edges={['top','bottom']}>
+      <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.card}>
             <Text style={s.cardTitle}>Verify Email</Text>
             <Text style={s.cardSub}>Enter the 6-digit code sent to</Text>
             <View style={s.emailPill}><Text style={s.emailPillText}>{email.trim()}</Text></View>
-            {!!msg && <View style={s.msgBox}><Text style={s.msgText}>✅ {msg}</Text></View>}
-            {!!error && <View style={s.errorBox}><Text style={s.errorText}>⚠️ {error}</Text></View>}
+            {!!msg && <View style={s.msgBox}><View style={s.inlineIconText}><MaterialCommunityIcons name="check-circle-outline" size={16} color="#6EE7B7" /><Text style={s.msgText}>{msg}</Text></View></View>}
+            {!!error && <View style={s.errorBox}><View style={s.inlineIconText}><MaterialCommunityIcons name="alert-outline" size={16} color="#FCA5A5" /><Text style={s.errorText}>{error}</Text></View></View>}
             <View style={s.otpRow}>
               {otp.map((d, i) => (
                 <TextInput
@@ -139,10 +140,10 @@ export default function RegisterScreen() {
 
   // ── Registration form ─────────────────────────────────
   return (
-    <SafeAreaView style={s.safe} edges={['top','bottom']}>
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
         <View style={s.heroSmall}>
-          <Text style={s.heroEmoji}>🏍️</Text>
+          <MaterialCommunityIcons name="motorbike" size={42} color={TEXT} />
           <Text style={s.heroTitle}>Create Account</Text>
           <Text style={s.heroSub}>Join Finding Moto as a Buyer</Text>
         </View>
@@ -150,7 +151,7 @@ export default function RegisterScreen() {
         <View style={s.card}>
           {/* Role tag */}
           <View style={s.roleCard}>
-            <Text style={s.roleEmoji}>🛒</Text>
+            <MaterialCommunityIcons name="cart-outline" size={30} color={ACCENT} />
             <View>
               <Text style={s.roleTitle}>Buyer Account</Text>
               <Text style={s.roleDesc}>Browse and purchase motorcycle parts & accessories</Text>
@@ -159,10 +160,10 @@ export default function RegisterScreen() {
 
           <View style={s.nameRow}>
             <TextInput style={[s.input, { flex: 1 }]} value={firstName}
-              onChangeText={v => setFirstName(v.replace(/[^A-Za-z\s.'-]/g,''))}
+              onChangeText={v => setFirstName(v.replace(/[^A-Za-z\s.'-]/g, ''))}
               placeholder="First name" placeholderTextColor={TEXT2} />
             <TextInput style={[s.input, { flex: 1 }]} value={lastName}
-              onChangeText={v => setLastName(v.replace(/[^A-Za-z\s.'-]/g,''))}
+              onChangeText={v => setLastName(v.replace(/[^A-Za-z\s.'-]/g, ''))}
               placeholder="Last name" placeholderTextColor={TEXT2} />
           </View>
 
@@ -171,7 +172,7 @@ export default function RegisterScreen() {
             keyboardType="email-address" autoCapitalize="none" />
 
           <TextInput style={s.input} value={phone}
-            onChangeText={v => setPhone(v.replace(/\D/g,'').slice(0,10))}
+            onChangeText={v => setPhone(v.replace(/\D/g, '').slice(0, 10))}
             placeholder="Phone number (10 digits)" placeholderTextColor={TEXT2}
             keyboardType="phone-pad" maxLength={10} />
 
@@ -182,7 +183,7 @@ export default function RegisterScreen() {
           <TextInput style={s.input} value={confirm} onChangeText={setConfirm}
             placeholder="Confirm password" placeholderTextColor={TEXT2} secureTextEntry />
 
-          {!!error && <View style={s.errorBox}><Text style={s.errorText}>⚠️ {error}</Text></View>}
+          {!!error && <View style={s.errorBox}><View style={s.inlineIconText}><MaterialCommunityIcons name="alert-outline" size={16} color="#FCA5A5" /><Text style={s.errorText}>{error}</Text></View></View>}
 
           <Pressable style={[s.btn, loading && { opacity: 0.6 }]} onPress={handleRegister} disabled={loading}>
             {loading ? <ActivityIndicator color={TEXT} /> : <Text style={s.btnText}>Create Account</Text>}
@@ -199,7 +200,6 @@ const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
 
   heroSmall: { alignItems: 'center', marginBottom: 20, paddingTop: 10 },
-  heroEmoji: { fontSize: 42 },
   heroTitle: { color: TEXT, fontSize: 26, fontWeight: '900', marginTop: 8 },
   heroSub: { color: TEXT2, fontSize: 14, marginTop: 4 },
 
@@ -208,7 +208,6 @@ const s = StyleSheet.create({
   cardSub: { color: TEXT2, fontSize: 14, marginBottom: 12 },
 
   roleCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#001A3D', borderRadius: 14, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: ACCENT },
-  roleEmoji: { fontSize: 30 },
   roleTitle: { color: TEXT, fontSize: 15, fontWeight: '800' },
   roleDesc: { color: TEXT2, fontSize: 12, marginTop: 2 },
 
@@ -219,6 +218,7 @@ const s = StyleSheet.create({
   },
 
   errorBox: { backgroundColor: '#2D0000', borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#7F1D1D' },
+  inlineIconText: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   errorText: { color: '#FCA5A5', fontSize: 13, fontWeight: '600' },
   msgBox: { backgroundColor: '#002D1A', borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: SUCCESS },
   msgText: { color: '#6EE7B7', fontSize: 13, fontWeight: '600' },

@@ -4,6 +4,7 @@ import {
   Platform, Pressable, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -34,13 +35,13 @@ function timeAgo(iso: string) {
 
 export default function MessagesScreen() {
   const { user } = useAuth();
-  const [convos, setConvos]         = useState<Conversation[]>([]);
-  const [loading, setLoading]       = useState(true);
-  const [active, setActive]         = useState<Conversation | null>(null);
-  const [messages, setMessages]     = useState<Message[]>([]);
+  const [convos, setConvos] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [active, setActive] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [msgLoading, setMsgLoading] = useState(false);
-  const [text, setText]             = useState('');
-  const [sending, setSending]       = useState(false);
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
   const flatRef = useRef<FlatList>(null);
 
   const fetchConvos = useCallback(async () => {
@@ -86,7 +87,7 @@ export default function MessagesScreen() {
       <SafeAreaView style={s.safe} edges={['top']}>
         <View style={s.chatHeader}>
           <Pressable onPress={() => { setActive(null); fetchConvos(); }} style={s.backBtn}>
-            <Text style={s.backIcon}>←</Text>
+            <MaterialCommunityIcons name="chevron-left" size={26} color={TEXT} />
           </Pressable>
           <View style={[s.avatarSm, { backgroundColor: color }]}>
             <Text style={s.avatarSmText}>{(other?.firstName?.[0] ?? '?').toUpperCase()}</Text>
@@ -114,7 +115,7 @@ export default function MessagesScreen() {
               onContentSizeChange={() => flatRef.current?.scrollToEnd({ animated: true })}
               ListEmptyComponent={
                 <View style={s.center}>
-                  <Text style={s.emptyIcon}>💬</Text>
+                  <MaterialCommunityIcons name="chat-outline" size={56} color={TEXT2} style={s.emptyIcon} />
                   <Text style={s.emptyTitle}>No messages yet</Text>
                   <Text style={s.emptyText}>Start the conversation!</Text>
                 </View>
@@ -151,7 +152,7 @@ export default function MessagesScreen() {
                 style={[s.sendBtn, (!text.trim() || sending) && { opacity: 0.4 }]}
                 onPress={sendMsg} disabled={!text.trim() || sending}
               >
-                {sending ? <ActivityIndicator color={TEXT} size="small" /> : <Text style={s.sendIcon}>➤</Text>}
+                {sending ? <ActivityIndicator color={TEXT} size="small" /> : <MaterialCommunityIcons name="send" size={18} color={TEXT} />}
               </Pressable>
             </View>
           </KeyboardAvoidingView>
@@ -174,7 +175,7 @@ export default function MessagesScreen() {
         <View style={s.center}><ActivityIndicator size="large" color={ACCENT} /></View>
       ) : convos.length === 0 ? (
         <View style={s.center}>
-          <Text style={s.emptyIcon}>💬</Text>
+          <MaterialCommunityIcons name="chat-outline" size={56} color={TEXT2} style={s.emptyIcon} />
           <Text style={s.emptyTitle}>No conversations yet</Text>
           <Text style={s.emptyText}>Start chatting from a product or service page.</Text>
         </View>
@@ -226,7 +227,7 @@ export default function MessagesScreen() {
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: BG },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8 },
-  emptyIcon: { fontSize: 52, marginBottom: 4 },
+  emptyIcon: { marginBottom: 4 },
   emptyTitle: { color: TEXT, fontSize: 18, fontWeight: '800' },
   emptyText: { color: TEXT2, fontSize: 13, textAlign: 'center', paddingHorizontal: 30 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 12 },
@@ -251,7 +252,6 @@ const s = StyleSheet.create({
 
   chatHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: CARD, paddingHorizontal: 14, paddingVertical: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: BORDER },
   backBtn: { padding: 4 },
-  backIcon: { color: ACCENT, fontSize: 22, fontWeight: '700' },
   avatarSm: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   avatarSmText: { color: TEXT, fontSize: 15, fontWeight: '900' },
   chatName: { color: TEXT, fontSize: 15, fontWeight: '800' },
@@ -272,5 +272,4 @@ const s = StyleSheet.create({
   inputBar: { flexDirection: 'row', alignItems: 'flex-end', padding: 12, gap: 10, backgroundColor: CARD, borderTopWidth: 1, borderTopColor: BORDER },
   msgInput: { flex: 1, backgroundColor: BG, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, color: TEXT, fontSize: 14, maxHeight: 100, borderWidth: 1, borderColor: BORDER },
   sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: ACCENT, alignItems: 'center', justifyContent: 'center' },
-  sendIcon: { color: TEXT, fontSize: 18, marginLeft: 2 },
 });

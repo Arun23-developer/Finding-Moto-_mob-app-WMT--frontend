@@ -10,40 +10,48 @@ import {
   Text,
   View,
 } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './src/context/AuthContext';
-import { AppProvider, useApp }   from './src/context/AppContext';
+import { AppProvider, useApp } from './src/context/AppContext';
 
-import LoginScreen    from './src/screens/LoginScreen';
+import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
-import HomeScreen     from './src/screens/HomeScreen';
-import OrdersScreen   from './src/screens/OrdersScreen';
+import HomeScreen from './src/screens/HomeScreen';
+import ProductDetailScreen from './src/screens/ProductDetailScreen';
+import CartScreen from './src/screens/CartScreen';
+import OrdersScreen from './src/screens/OrdersScreen';
+import ReturnsScreen from './src/screens/ReturnsScreen';
 import MessagesScreen from './src/screens/MessagesScreen';
-import ProfileScreen  from './src/screens/ProfileScreen';
-import AIAssistant    from './src/components/AIAssistant';
+import ProfileScreen from './src/screens/ProfileScreen';
+import AIAssistant from './src/components/AIAssistant';
 
 // ── Design tokens ─────────────────────────────────────────
-const BG     = '#0F172A';
-const CARD   = '#1E293B';
+const BG = '#0F172A';
+const CARD = '#1E293B';
 const BORDER = '#334155';
 const ACCENT = '#2563EB';
-const TEXT   = '#FFFFFF';
-const TEXT2  = '#94A3B8';
+const TEXT = '#FFFFFF';
+const TEXT2 = '#94A3B8';
 
 // ── Nav types ─────────────────────────────────────────────
-type AuthStack  = { Login: undefined; Register: undefined };
-type BuyerTabs  = { Home: undefined; Orders: undefined; Messages: undefined; Profile: undefined };
+type AuthStack = { Login: undefined; Register: undefined };
+type HomeStack = { HomeIndex: undefined; ProductDetail: { productId: string } };
+type BuyerTabs = { Home: undefined; Cart: undefined; Orders: undefined; Returns: undefined; Messages: undefined; Profile: undefined };
 
-const AuthNav  = createNativeStackNavigator<AuthStack>();
+const AuthNav = createNativeStackNavigator<AuthStack>();
+const HomeNav = createNativeStackNavigator<HomeStack>();
 const BuyerTab = createBottomTabNavigator<BuyerTabs>();
 
 // ── Tab config ────────────────────────────────────────────
 const TAB_META: Record<string, { icon: string; activeIcon: string; label: string }> = {
-  Home:     { icon: '🏠', activeIcon: '🏠', label: 'Home'     },
-  Orders:   { icon: '📦', activeIcon: '📦', label: 'Orders'   },
-  Messages: { icon: '💬', activeIcon: '💬', label: 'Messages' },
-  Profile:  { icon: '👤', activeIcon: '👤', label: 'Profile'  },
+  Home: { icon: 'home-outline', activeIcon: 'home', label: 'Home' },
+  Cart: { icon: 'cart-outline', activeIcon: 'cart', label: 'Cart' },
+  Orders: { icon: 'package-variant-closed', activeIcon: 'package-variant', label: 'Orders' },
+  Returns: { icon: 'keyboard-return', activeIcon: 'keyboard-return', label: 'Returns' },
+  Messages: { icon: 'message-text-outline', activeIcon: 'message-text', label: 'Messages' },
+  Profile: { icon: 'account-circle-outline', activeIcon: 'account-circle', label: 'Profile' },
 };
 
 // ── Custom tab icon ───────────────────────────────────────
@@ -51,12 +59,15 @@ function TabIcon({ name, focused, badge }: { name: string; focused: boolean; bad
   const meta = TAB_META[name];
   return (
     <View style={t.iconWrap}>
-      <Text style={[t.icon, focused && t.iconActive]}>
-        {focused ? meta.activeIcon : meta.icon}
-      </Text>
+      <MaterialCommunityIcons
+        name={(focused ? meta.activeIcon : meta.icon) as any}
+        size={22}
+        color={focused ? ACCENT : '#94A3B8'}
+        style={focused ? t.iconActive : t.icon}
+      />
       {!!badge && (
         <View style={t.badge}>
-          <Text style={t.badgeText}>{badge > 9 ? '9+' : badge}</Text>
+          <Text style={t.badgeText}>{badge > 9 ? '9+' : String(badge)}</Text>
         </View>
       )}
     </View>
@@ -67,9 +78,19 @@ function TabIcon({ name, focused, badge }: { name: string; focused: boolean; bad
 function AuthNavigator() {
   return (
     <AuthNav.Navigator screenOptions={{ headerShown: false }}>
-      <AuthNav.Screen name="Login"    component={LoginScreen}    />
+      <AuthNav.Screen name="Login" component={LoginScreen} />
       <AuthNav.Screen name="Register" component={RegisterScreen} />
     </AuthNav.Navigator>
+  );
+}
+
+// ── Home navigator (with product detail) ──────────────────
+function HomeNavigator() {
+  return (
+    <HomeNav.Navigator screenOptions={{ headerShown: false }}>
+      <HomeNav.Screen name="HomeIndex" component={HomeScreen} />
+      <HomeNav.Screen name="ProductDetail" component={ProductDetailScreen} />
+    </HomeNav.Navigator>
   );
 }
 
@@ -99,10 +120,12 @@ function BuyerNavigator() {
         tabBarItemStyle: t.tabItem,
       })}
     >
-      <BuyerTab.Screen name="Home"     component={HomeScreen}     />
-      <BuyerTab.Screen name="Orders"   component={OrdersScreen}   />
+      <BuyerTab.Screen name="Home" component={HomeNavigator} />
+      <BuyerTab.Screen name="Cart" component={CartScreen} />
+      <BuyerTab.Screen name="Orders" component={OrdersScreen} />
+      <BuyerTab.Screen name="Returns" component={ReturnsScreen} />
       <BuyerTab.Screen name="Messages" component={MessagesScreen} />
-      <BuyerTab.Screen name="Profile"  component={ProfileScreen}  />
+      <BuyerTab.Screen name="Profile" component={ProfileScreen} />
     </BuyerTab.Navigator>
   );
 }
@@ -128,19 +151,13 @@ function RootNavigator() {
     <NavigationContainer theme={{
       dark: true,
       colors: {
-        primary:      ACCENT,
-        background:   BG,
-        card:         CARD,
-        text:         TEXT,
-        border:       BORDER,
+        primary: ACCENT,
+        background: BG,
+        card: CARD,
+        text: TEXT,
+        border: BORDER,
         notification: '#EF4444',
-      },
-      fonts: {
-        regular: { fontFamily: 'System', fontWeight: '400' },
-        medium:  { fontFamily: 'System', fontWeight: '500' },
-        bold:    { fontFamily: 'System', fontWeight: '700' },
-        heavy:   { fontFamily: 'System', fontWeight: '900' },
-      },
+      }
     }}>
       <View style={{ flex: 1 }}>
         {user?.role === 'buyer' ? <BuyerNavigator /> : <AuthNavigator />}

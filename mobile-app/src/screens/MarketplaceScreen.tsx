@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   FlatList,
   Pressable,
   RefreshControl,
@@ -11,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../services/api';
 
@@ -23,6 +25,8 @@ interface Product {
   stock?: number;
   description?: string;
   seller?: { firstName?: string; lastName?: string; shopName?: string };
+  image?: string | null;
+  images?: string[];
 }
 
 const DARK = '#0f172a';
@@ -34,12 +38,16 @@ const ACCENT = '#e11d48';
 const CATEGORIES = ['All', 'Engine', 'Brakes', 'Suspension', 'Electrical', 'Tyres', 'Body', 'Accessories'];
 
 const CATEGORY_ICONS: Record<string, string> = {
-  All: '🏍️', Engine: '⚙️', Brakes: '🛞', Suspension: '🔧',
-  Electrical: '⚡', Tyres: '🔘', Body: '🏗️', Accessories: '🎒',
+  All: 'motorbike', Engine: 'cog-outline', Brakes: 'car-brake-alert', Suspension: 'tools',
+  Electrical: 'lightning-bolt-outline', Tyres: 'circle-outline', Body: 'home-group', Accessories: 'bag-personal-outline',
 };
 
 function toINR(n: number) {
   return `LKR ${n.toLocaleString()}`;
+}
+
+function getProductImage(product: Product) {
+  return product.image || product.images?.[0] || null;
 }
 
 export default function MarketplaceScreen() {
@@ -106,11 +114,16 @@ export default function MarketplaceScreen() {
     const added = addedId === item._id;
     const adding = addingId === item._id;
     const sellerName = item.seller?.shopName || `${item.seller?.firstName ?? ''} ${item.seller?.lastName ?? ''}`.trim() || 'Seller';
+    const productImage = getProductImage(item);
     return (
       <View style={s.productCard}>
         {/* Thumbnail placeholder */}
         <View style={s.productThumb}>
-          <Text style={s.productThumbIcon}>🏍️</Text>
+          {productImage ? (
+            <Image source={{ uri: productImage }} style={s.productThumbImage} resizeMode="cover" />
+          ) : (
+            <MaterialCommunityIcons name="motorbike" size={40} color={DARK} />
+          )}
         </View>
 
         {/* Category & Brand */}
@@ -150,7 +163,7 @@ export default function MarketplaceScreen() {
           >
             {adding
               ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={s.addBtnText}>{added ? '✓ Added' : '+ Cart'}</Text>
+              : <MaterialCommunityIcons name={added ? 'check' : 'cart-plus'} size={14} color="#fff" />
             }
           </Pressable>
         </View>
@@ -164,14 +177,14 @@ export default function MarketplaceScreen() {
       <View style={s.header}>
         <View>
           <Text style={s.headerGreet}>Find Parts &</Text>
-          <Text style={s.headerTitle}>Services 🏍️</Text>
+          <Text style={s.headerTitle}>Services</Text>
         </View>
       </View>
 
       {/* Search Bar */}
       <View style={s.searchRow}>
         <View style={s.searchBar}>
-          <Text style={s.searchIcon}>🔍</Text>
+          <MaterialCommunityIcons name="magnify" size={18} color={MUTED} />
           <TextInput
             ref={searchRef}
             style={s.searchInput}
@@ -184,12 +197,12 @@ export default function MarketplaceScreen() {
           />
           {query.length > 0 && (
             <Pressable onPress={() => { setQuery(''); fetchProducts('', category); }}>
-              <Text style={s.clearBtn}>✕</Text>
+              <MaterialCommunityIcons name="close" size={16} color={MUTED} />
             </Pressable>
           )}
         </View>
         <Pressable style={s.imgSearchBtn} onPress={handleImageSearch}>
-          <Text style={s.imgSearchIcon}>📷</Text>
+          <MaterialCommunityIcons name="camera-outline" size={22} color={DARK} />
         </Pressable>
       </View>
 
@@ -209,7 +222,7 @@ export default function MarketplaceScreen() {
             style={[s.catChip, category === cat && s.catChipActive]}
             onPress={() => onCategoryChange(cat)}
           >
-            <Text style={s.catChipIcon}>{CATEGORY_ICONS[cat]}</Text>
+            <MaterialCommunityIcons name={CATEGORY_ICONS[cat]} size={14} color={category === cat ? '#fff' : MUTED} />
             <Text style={[s.catChipText, category === cat && s.catChipTextActive]}>{cat}</Text>
           </Pressable>
         ))}
@@ -254,7 +267,7 @@ export default function MarketplaceScreen() {
           renderItem={renderProduct}
           ListEmptyComponent={
             <View style={s.emptyContainer}>
-              <Text style={s.emptyIcon}>🔍</Text>
+              <MaterialCommunityIcons name="magnify" size={56} color={DARK} style={s.emptyIcon} />
               <Text style={s.emptyTitle}>No products found</Text>
               <Text style={s.emptySubtitle}>Try a different search term or category.</Text>
             </View>
@@ -276,11 +289,8 @@ const s = StyleSheet.create({
 
   searchRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 10, marginBottom: 8 },
   searchBar: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: SURFACE, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 11, gap: 8, shadowColor: DARK, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
-  searchIcon: { fontSize: 16 },
   searchInput: { flex: 1, fontSize: 15, color: DARK },
-  clearBtn: { fontSize: 14, color: MUTED, paddingHorizontal: 4 },
   imgSearchBtn: { width: 48, height: 48, borderRadius: 16, backgroundColor: SURFACE, alignItems: 'center', justifyContent: 'center', shadowColor: DARK, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2 },
-  imgSearchIcon: { fontSize: 22 },
 
   tipBar: { marginHorizontal: 16, marginBottom: 6, backgroundColor: '#dbeafe', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
   tipText: { color: '#1e40af', fontWeight: '600', fontSize: 12 },
@@ -288,7 +298,6 @@ const s = StyleSheet.create({
   categoriesScroll: { paddingHorizontal: 16, gap: 8, paddingBottom: 10 },
   catChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: SURFACE, shadowColor: DARK, shadowOpacity: 0.04, shadowRadius: 6, elevation: 1 },
   catChipActive: { backgroundColor: ACCENT },
-  catChipIcon: { fontSize: 14 },
   catChipText: { fontSize: 13, fontWeight: '700', color: MUTED },
   catChipTextActive: { color: '#fff' },
 
@@ -310,8 +319,8 @@ const s = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
-  productThumb: { width: '100%', height: 90, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  productThumbIcon: { fontSize: 40 },
+  productThumb: { width: '100%', height: 90, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', marginBottom: 10, overflow: 'hidden' },
+  productThumbImage: { width: '100%', height: '100%' },
 
   productTagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 6 },
   categoryTag: { backgroundColor: '#eff6ff', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
@@ -333,7 +342,7 @@ const s = StyleSheet.create({
   addBtnText: { color: '#fff', fontSize: 11, fontWeight: '900' },
 
   emptyContainer: { alignItems: 'center', justifyContent: 'center', paddingTop: 60, paddingHorizontal: 40 },
-  emptyIcon: { fontSize: 56, marginBottom: 14 },
+  emptyIcon: { marginBottom: 14 },
   emptyTitle: { fontSize: 20, fontWeight: '800', color: DARK, textAlign: 'center' },
   emptySubtitle: { marginTop: 8, fontSize: 14, color: MUTED, textAlign: 'center', lineHeight: 20 },
 });

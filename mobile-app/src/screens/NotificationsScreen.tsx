@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import api from '../services/api';
 
 interface Notification {
@@ -27,13 +28,13 @@ const SURFACE = '#ffffff';
 const ACCENT = '#e11d48';
 
 const TYPE_CONFIG: Record<string, { icon: string; bg: string; text: string }> = {
-  order:        { icon: '📦', bg: '#dbeafe', text: '#1e40af' },
-  delivery:     { icon: '🚚', bg: '#d1fae5', text: '#065f46' },
-  return:       { icon: '↩',  bg: '#fce7f3', text: '#9d174d' },
-  payment:      { icon: '💳', bg: '#fef9c3', text: '#854d0e' },
-  message:      { icon: '💬', bg: '#e0e7ff', text: '#3730a3' },
-  admin:        { icon: '🔔', bg: '#fee2e2', text: '#991b1b' },
-  system:       { icon: '⚙️', bg: '#f3f4f6', text: '#374151' },
+  order: { icon: 'package-variant-closed', bg: '#dbeafe', text: '#1e40af' },
+  delivery: { icon: 'truck-delivery-outline', bg: '#d1fae5', text: '#065f46' },
+  return: { icon: 'keyboard-return', bg: '#fce7f3', text: '#9d174d' },
+  payment: { icon: 'credit-card-outline', bg: '#fef9c3', text: '#854d0e' },
+  message: { icon: 'chat-outline', bg: '#e0e7ff', text: '#3730a3' },
+  admin: { icon: 'bell-outline', bg: '#fee2e2', text: '#991b1b' },
+  system: { icon: 'cog-outline', bg: '#f3f4f6', text: '#374151' },
 };
 
 function getType(t: string) {
@@ -80,7 +81,7 @@ export default function NotificationsScreen() {
     try {
       await api.patch(`/notifications/${id}/read`);
       setNotifs((prev) => prev.map((n) => n._id === id ? { ...n, isRead: true } : n));
-    } catch {}
+    } catch { }
   };
 
   const markAllRead = async () => {
@@ -88,7 +89,7 @@ export default function NotificationsScreen() {
     try {
       await api.patch('/notifications/mark-all-read');
       setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    } catch {} finally {
+    } catch { } finally {
       setMarkingAll(false);
     }
   };
@@ -143,7 +144,7 @@ export default function NotificationsScreen() {
 
       {filtered.length === 0 ? (
         <View style={s.emptyContainer}>
-          <Text style={s.emptyIcon}>🔔</Text>
+          <MaterialCommunityIcons name="bell-outline" size={64} color={DARK} style={s.emptyIcon} />
           <Text style={s.emptyTitle}>{tab === 'Unread' ? 'All caught up!' : 'No notifications'}</Text>
           <Text style={s.emptySubtitle}>
             {tab === 'Unread' ? 'You have no unread notifications.' : 'Order updates, deliveries & messages will appear here.'}
@@ -166,7 +167,7 @@ export default function NotificationsScreen() {
                 {!notif.isRead && <View style={s.unreadDot} />}
 
                 <View style={[s.iconBox, { backgroundColor: tc.bg }]}>
-                  <Text style={s.iconText}>{tc.icon}</Text>
+                  <MaterialCommunityIcons name={tc.icon as any} size={20} color={tc.text} />
                 </View>
 
                 <View style={s.notifContent}>
@@ -206,7 +207,7 @@ const s = StyleSheet.create({
   tabBadge: { backgroundColor: '#fff', borderRadius: 999, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   tabBadgeText: { color: ACCENT, fontSize: 10, fontWeight: '900' },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40 },
-  emptyIcon: { fontSize: 64, marginBottom: 16 },
+  emptyIcon: { marginBottom: 16 },
   emptyTitle: { fontSize: 22, fontWeight: '800', color: DARK, textAlign: 'center' },
   emptySubtitle: { marginTop: 8, fontSize: 15, color: MUTED, textAlign: 'center', lineHeight: 22 },
   listContent: { paddingHorizontal: 16, paddingBottom: 24 },
@@ -214,7 +215,6 @@ const s = StyleSheet.create({
   cardUnread: { borderLeftWidth: 3, borderLeftColor: ACCENT },
   unreadDot: { position: 'absolute', top: 14, right: 14, width: 8, height: 8, borderRadius: 4, backgroundColor: ACCENT },
   iconBox: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  iconText: { fontSize: 20 },
   notifContent: { flex: 1 },
   notifTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
   notifTitle: { fontSize: 14, fontWeight: '700', color: DARK, flex: 1 },

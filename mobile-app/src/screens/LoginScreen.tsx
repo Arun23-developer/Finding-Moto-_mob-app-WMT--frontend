@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
 
 type Props = NativeStackScreenProps<{ Login: undefined; Register: undefined }, 'Login'>;
@@ -38,7 +39,7 @@ export default function LoginScreen({ navigation }: Props) {
           {/* Hero */}
           <View style={s.hero}>
             <View style={s.logoBox}>
-              <Text style={s.logoEmoji}>🏍️</Text>
+              <MaterialCommunityIcons name="motorbike" size={44} color={TEXT} />
             </View>
             <Text style={s.appName}>Finding Moto</Text>
             <Text style={s.tagline}>Your motorbike marketplace</Text>
@@ -51,7 +52,7 @@ export default function LoginScreen({ navigation }: Props) {
 
             {/* Email */}
             <View style={s.inputRow}>
-              <Text style={s.inputIcon}>✉️</Text>
+              <MaterialCommunityIcons name="email-outline" size={18} color={TEXT2} />
               <TextInput
                 style={s.input}
                 value={email}
@@ -65,7 +66,7 @@ export default function LoginScreen({ navigation }: Props) {
 
             {/* Password */}
             <View style={s.inputRow}>
-              <Text style={s.inputIcon}>🔒</Text>
+              <MaterialCommunityIcons name="lock-outline" size={18} color={TEXT2} />
               <TextInput
                 style={s.input}
                 value={password}
@@ -75,14 +76,17 @@ export default function LoginScreen({ navigation }: Props) {
                 secureTextEntry={!showPass}
               />
               <Pressable onPress={() => setShowPass(v => !v)} style={s.eyeBtn}>
-                <Text style={s.eyeIcon}>{showPass ? '🙈' : '👁️'}</Text>
+                <MaterialCommunityIcons name={showPass ? 'eye-off-outline' : 'eye-outline'} size={18} color={TEXT2} />
               </Pressable>
             </View>
 
             {/* Error */}
             {!!error && (
               <View style={s.errorBox}>
-                <Text style={s.errorText}>⚠️  {error}</Text>
+                <View style={s.inlineIconText}>
+                  <MaterialCommunityIcons name="alert-outline" size={16} color="#FCA5A5" />
+                  <Text style={s.errorText}>{error}</Text>
+                </View>
               </View>
             )}
 
@@ -107,9 +111,10 @@ export default function LoginScreen({ navigation }: Props) {
 
           {/* Note */}
           <View style={s.noteBox}>
-            <Text style={s.noteText}>
-              ℹ️  Sellers, Mechanics & Delivery Agents use the web dashboard, not this app.
-            </Text>
+            <View style={s.inlineIconText}>
+              <MaterialCommunityIcons name="information-outline" size={16} color="#93C5FD" />
+              <Text style={s.noteText}>Sellers, Mechanics & Delivery Agents use the web dashboard, not this app.</Text>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -127,7 +132,6 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 16,
     shadowColor: ACCENT, shadowOpacity: 0.5, shadowRadius: 24, elevation: 12,
   },
-  logoEmoji: { fontSize: 44 },
   appName: { color: TEXT, fontSize: 30, fontWeight: '900' },
   tagline: { color: TEXT2, fontSize: 14, marginTop: 5 },
 
@@ -140,12 +144,11 @@ const s = StyleSheet.create({
     borderRadius: 14, borderWidth: 1, borderColor: BORDER,
     paddingHorizontal: 14, paddingVertical: 4, marginBottom: 12, gap: 10,
   },
-  inputIcon: { fontSize: 17 },
   input: { flex: 1, color: TEXT, fontSize: 15, paddingVertical: 11 },
   eyeBtn: { padding: 4 },
-  eyeIcon: { fontSize: 17 },
 
   errorBox: { backgroundColor: '#2D0000', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#7F1D1D' },
+  inlineIconText: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   errorText: { color: '#FCA5A5', fontSize: 13, fontWeight: '600' },
 
   btn: {

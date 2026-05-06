@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   FlatList,
   Pressable,
   RefreshControl,
@@ -11,10 +12,14 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
+
+type Props = NativeStackScreenProps<any, 'HomeIndex'>;
 
 // ── Tokens ────────────────────────────────────────────────
 const BG     = '#0F172A';
@@ -25,11 +30,25 @@ const TEXT   = '#FFFFFF';
 const TEXT2  = '#94A3B8';
 const SUCCESS = '#10B981';
 
+const CATEGORY_ICONS: Record<string, string> = {
+  All: 'motorbike',
+  Engine: 'cog-outline',
+  Brakes: 'car-brake-alert',
+  Suspension: 'tools',
+  Electrical: 'lightning-bolt-outline',
+  Tyres: 'circle-outline',
+  Body: 'home-group',
+  Accessories: 'bag-personal-outline',
+  Services: 'wrench-outline',
+};
+
 // ── Types ─────────────────────────────────────────────────
 interface Product {
   _id: string; name: string; price?: number;
   category?: string; brand?: string; stock?: number;
   seller?: { firstName?: string; lastName?: string; shopName?: string };
+  image?: string | null;
+  images?: string[];
 }
 interface Conversation {
   _id: string;
@@ -40,15 +59,15 @@ interface Conversation {
 
 // ── Helpers ───────────────────────────────────────────────
 const CATEGORIES = [
-  { label: 'All',         icon: '🏍️' },
-  { label: 'Engine',      icon: '⚙️' },
-  { label: 'Brakes',      icon: '🛞' },
-  { label: 'Suspension',  icon: '🔧' },
-  { label: 'Electrical',  icon: '⚡' },
-  { label: 'Tyres',       icon: '🔘' },
-  { label: 'Body',        icon: '🏗️' },
-  { label: 'Accessories', icon: '🎒' },
-  { label: 'Services',    icon: '🔩' },
+  { label: 'All' },
+  { label: 'Engine' },
+  { label: 'Brakes' },
+  { label: 'Suspension' },
+  { label: 'Electrical' },
+  { label: 'Tyres' },
+  { label: 'Body' },
+  { label: 'Accessories' },
+  { label: 'Services' },
 ];
 
 function timeAgo(iso: string) {
@@ -66,7 +85,7 @@ const ROLE_COLOR: Record<string, string> = {
 };
 
 // ── Component ─────────────────────────────────────────────
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }: Props) {
   const { user } = useAuth();
   const { openAI } = useApp();
 
@@ -136,7 +155,7 @@ export default function HomeScreen() {
   const imageSearch = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.7 });
     if (!res.canceled) {
-      setImageTip('📷 Image search coming soon!');
+      setImageTip('Image search coming soon!');
       setTimeout(() => setImageTip(''), 2500);
     }
   };
@@ -144,11 +163,13 @@ export default function HomeScreen() {
   const getOther = (c: Conversation) =>
     c.participants.find(p => p._id !== user?._id);
 
+  const getProductImage = (product: Product) => product.image || product.images?.[0] || null;
+
   const greetingLine = () => {
     const h = new Date().getHours();
-    if (h < 12) return `Good morning, ${firstName} 👋`;
-    if (h < 17) return `Good afternoon, ${firstName} 👋`;
-    return `Good evening, ${firstName} 👋`;
+    if (h < 12) return `Good morning, ${firstName}`;
+    if (h < 17) return `Good afternoon, ${firstName}`;
+    return `Good evening, ${firstName}`;
   };
 
   return (
@@ -173,10 +194,10 @@ export default function HomeScreen() {
             <View style={s.topBar}>
               <View>
                 <Text style={s.greeting}>{greetingLine()}</Text>
-                <Text style={s.tagline}>Find the best parts & services 🏍️</Text>
+                <Text style={s.tagline}>Find the best parts & services</Text>
               </View>
               <Pressable style={s.notifBtn} onPress={openAI}>
-                <Text style={s.notifIcon}>🔔</Text>
+                <MaterialCommunityIcons name="bell-outline" size={18} color={TEXT} />
               </Pressable>
             </View>
 
@@ -191,7 +212,7 @@ export default function HomeScreen() {
                     onPress={() => onTabChange(t)}
                   >
                     <Text style={[s.searchTabText, searchTab === t && s.searchTabTextActive]}>
-                      {t === 'Products' ? '🔩 ' : '🔧 '}{t}
+                      {t === 'Products' ? 'Products' : 'Services'}
                     </Text>
                   </Pressable>
                 ))}
@@ -200,7 +221,7 @@ export default function HomeScreen() {
               {/* Search bar */}
               <View style={s.searchRow}>
                 <View style={s.searchInput}>
-                  <Text style={s.searchIcon}>🔍</Text>
+                  <MaterialCommunityIcons name="magnify" size={18} color={TEXT2} />
                   <TextInput
                     style={s.searchField}
                     value={query}
@@ -212,12 +233,12 @@ export default function HomeScreen() {
                   />
                   {query.length > 0 && (
                     <Pressable onPress={() => { setQuery(''); fetchData('', category); }}>
-                      <Text style={s.clearX}>✕</Text>
+                      <MaterialCommunityIcons name="close" size={16} color={TEXT2} />
                     </Pressable>
                   )}
                 </View>
                 <Pressable style={s.imgBtn} onPress={imageSearch}>
-                  <Text style={s.imgBtnIcon}>📷</Text>
+                  <MaterialCommunityIcons name="camera-outline" size={22} color={TEXT} />
                 </Pressable>
               </View>
 
@@ -266,7 +287,7 @@ export default function HomeScreen() {
                     style={[s.catChip, category === cat.label && s.catChipActive]}
                     onPress={() => onCategory(cat.label)}
                   >
-                    <Text style={s.catIcon}>{cat.icon}</Text>
+                    <MaterialCommunityIcons name={CATEGORY_ICONS[cat.label] as any} size={14} color={TEXT2} />
                     <Text style={[s.catLabel, category === cat.label && s.catLabelActive]}>
                       {cat.label}
                     </Text>
@@ -278,14 +299,14 @@ export default function HomeScreen() {
             {/* ── Products header ── */}
             <View style={s.productsHeader}>
               <Text style={s.sectionTitle}>
-                {searchTab === 'Services' ? '🔧 Services' : '🛒 Products'}
+                {searchTab === 'Services' ? 'Services' : 'Products'}
               </Text>
               {loading && <ActivityIndicator color={ACCENT} size="small" />}
             </View>
 
             {!loading && products.length === 0 && (
               <View style={s.empty}>
-                <Text style={s.emptyIcon}>🔍</Text>
+                <MaterialCommunityIcons name="magnify" size={48} color={TEXT2} style={s.emptyIcon} />
                 <Text style={s.emptyTitle}>Nothing found</Text>
                 <Text style={s.emptyText}>Try a different search or category.</Text>
               </View>
@@ -298,9 +319,16 @@ export default function HomeScreen() {
           const seller  = item.seller?.shopName || `${item.seller?.firstName ?? ''} ${item.seller?.lastName ?? ''}`.trim() || 'Seller';
           const inStock = item.stock == null || item.stock > 0;
           return (
-            <View style={s.productCard}>
+            <Pressable
+              onPress={() => navigation.navigate('ProductDetail', { productId: item._id })}
+              style={({ pressed }) => [s.productCard, pressed && { opacity: 0.7 }]}
+            >
               <View style={s.productThumb}>
-                <Text style={s.productThumbIcon}>🏍️</Text>
+                {getProductImage(item) ? (
+                  <Image source={{ uri: getProductImage(item) ?? undefined }} style={s.productThumbImage} resizeMode="cover" />
+                ) : (
+                  <MaterialCommunityIcons name="motorbike" size={36} color={TEXT2} />
+                )}
               </View>
               <View style={s.productTags}>
                 {item.category && <View style={s.catTag}><Text style={s.catTagText}>{item.category}</Text></View>}
@@ -323,12 +351,12 @@ export default function HomeScreen() {
                   >
                     {adding
                       ? <ActivityIndicator color={TEXT} size="small" />
-                      : <Text style={s.addBtnText}>{added ? '✓' : '+'}</Text>
+                      : <MaterialCommunityIcons name={added ? 'check' : 'cart-plus'} size={16} color={TEXT} />
                     }
                   </Pressable>
                 )}
               </View>
-            </View>
+            </Pressable>
           );
         }}
         ListFooterComponent={<View style={{ height: 100 }} />}
@@ -345,7 +373,6 @@ const s = StyleSheet.create({
   greeting: { color: TEXT, fontSize: 20, fontWeight: '900' },
   tagline: { color: TEXT2, fontSize: 13, marginTop: 3 },
   notifBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: CARD, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: BORDER },
-  notifIcon: { fontSize: 18 },
 
   searchCard: { marginHorizontal: 16, backgroundColor: CARD, borderRadius: 20, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: BORDER },
   searchTabs: { flexDirection: 'row', backgroundColor: BG, borderRadius: 12, padding: 3, marginBottom: 12 },
@@ -355,11 +382,8 @@ const s = StyleSheet.create({
   searchTabTextActive: { color: TEXT },
   searchRow: { flexDirection: 'row', gap: 10 },
   searchInput: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: BG, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, gap: 8, borderWidth: 1, borderColor: BORDER },
-  searchIcon: { fontSize: 15 },
   searchField: { flex: 1, color: TEXT, fontSize: 14 },
-  clearX: { color: TEXT2, fontSize: 13, paddingHorizontal: 4 },
   imgBtn: { width: 46, height: 46, borderRadius: 12, backgroundColor: BG, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: BORDER },
-  imgBtnIcon: { fontSize: 20 },
   imageTip: { color: '#93C5FD', fontSize: 12, fontWeight: '600', marginTop: 8 },
 
   section: { paddingHorizontal: 16, marginBottom: 16 },
@@ -378,7 +402,6 @@ const s = StyleSheet.create({
   catRow: { gap: 8, paddingRight: 4 },
   catChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: CARD, borderWidth: 1, borderColor: BORDER },
   catChipActive: { backgroundColor: ACCENT, borderColor: ACCENT },
-  catIcon: { fontSize: 14 },
   catLabel: { color: TEXT2, fontSize: 13, fontWeight: '700' },
   catLabelActive: { color: TEXT },
 
@@ -388,8 +411,8 @@ const s = StyleSheet.create({
   gridRow: { justifyContent: 'space-between', marginBottom: 0 },
 
   productCard: { width: '48.5%', backgroundColor: CARD, borderRadius: 18, marginBottom: 12, padding: 12, borderWidth: 1, borderColor: BORDER },
-  productThumb: { width: '100%', height: 80, borderRadius: 12, backgroundColor: '#0F2744', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  productThumbIcon: { fontSize: 36 },
+  productThumb: { width: '100%', height: 80, borderRadius: 12, backgroundColor: '#0F2744', alignItems: 'center', justifyContent: 'center', marginBottom: 10, overflow: 'hidden' },
+  productThumbImage: { width: '100%', height: '100%' },
   productTags: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 6 },
   catTag: { backgroundColor: '#1E3A5F', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
   catTagText: { color: '#93C5FD', fontSize: 9, fontWeight: '700' },
@@ -406,7 +429,7 @@ const s = StyleSheet.create({
   addBtnText: { color: TEXT, fontSize: 16, fontWeight: '900' },
 
   empty: { alignItems: 'center', paddingVertical: 48 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyIcon: { marginBottom: 12 },
   emptyTitle: { color: TEXT, fontSize: 18, fontWeight: '800' },
   emptyText: { color: TEXT2, fontSize: 13, marginTop: 6 },
 });

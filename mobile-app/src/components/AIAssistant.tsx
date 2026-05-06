@@ -52,9 +52,10 @@ function TypingDots() {
 export default function AIAssistant() {
   const { aiOpen, openAI, closeAI } = useApp();
   const insets = useSafeAreaInsets();
+  const [isVisible, setIsVisible] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([
-    { id: '0', role: 'ai', text: "Hi! I'm Moto AI.\nHow can I help you today?", ts: Date.now() },
+    { id: '0', role: 'ai', text: "Hi! I'm Moto AI, powered by DeepSeek.\nHow can I help you today?", ts: Date.now() },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -66,8 +67,14 @@ export default function AIAssistant() {
 
   useEffect(() => {
     if (aiOpen) {
+      setIsVisible(true);
       setIsOpen(true);
+      return;
     }
+
+    setIsOpen(false);
+    const hideTimer = setTimeout(() => setIsVisible(false), 220);
+    return () => clearTimeout(hideTimer);
   }, [aiOpen]);
 
   useEffect(() => {
@@ -189,7 +196,7 @@ export default function AIAssistant() {
   const fabBottom = bottomInset + 82;
   return (
     <>
-      {isOpen && (
+      {isVisible && (
         <Animated.View
           pointerEvents="auto"
           style={[styles.backdrop, { opacity: backdropOpacity }]}
@@ -198,117 +205,119 @@ export default function AIAssistant() {
         </Animated.View>
       )}
 
-      <Animated.View
-        pointerEvents={isOpen ? 'auto' : 'none'}
-        style={[
-          styles.panel,
-          {
-            bottom: panelBottom,
-            opacity: panelOpacity,
-            transform: [{ translateY: panelTranslateY }],
-          },
-        ]}
-      >
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.botAvatar}>
-              <Text style={styles.botAvatarText}>AI</Text>
-            </View>
-            <View>
-              <Text style={styles.headerTitle}>Moto AI Assistant</Text>
-              <View style={styles.onlineRow}>
-                <View style={styles.onlineDot} />
-                <Text style={styles.onlineText}>Online</Text>
-              </View>
-            </View>
-          </View>
-          <Pressable onPress={closePanel} hitSlop={14} style={styles.closeBtn}>
-            <Text style={styles.closeIcon}>X</Text>
-          </Pressable>
-        </View>
-
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      {isVisible && (
+        <Animated.View
+          pointerEvents={isOpen ? 'auto' : 'none'}
+          style={[
+            styles.panel,
+            {
+              bottom: panelBottom,
+              opacity: panelOpacity,
+              transform: [{ translateY: panelTranslateY }],
+            },
+          ]}
         >
-          <FlatList
-            ref={flatRef}
-            data={msgs}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.msgList}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            onContentSizeChange={() => scrollToBottom(true)}
-            ListHeaderComponent={
-              msgs.length === 1 ? (
-                <View style={styles.quickSection}>
-                  <Text style={styles.quickTitle}>Quick Actions</Text>
-                  <View style={styles.quickGrid}>
-                    {QUICK.map((item) => (
-                      <Pressable key={item.label} style={styles.quickBtn} onPress={() => send(item.prompt)}>
-                        <Text style={styles.quickBtnText}>{item.label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                </View>
-              ) : null
-            }
-            renderItem={({ item }) => (
-              <View
-                style={[
-                  styles.bubbleRow,
-                  item.role === 'user' ? styles.bubbleRowUser : styles.bubbleRowAI,
-                ]}
-              >
-                {item.role === 'ai' && (
-                  <View style={styles.aiBubbleAvatar}>
-                    <Text style={styles.aiBubbleAvatarText}>AI</Text>
-                  </View>
-                )}
-                <View style={[styles.bubble, item.role === 'user' ? styles.bubbleUser : styles.bubbleAI]}>
-                  <Text style={[styles.bubbleText, item.role === 'user' && styles.bubbleTextUser]}>
-                    {item.text}
-                  </Text>
-                  <Text style={styles.bubbleTime}>{formatTime(item.ts)}</Text>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <View style={styles.botAvatar}>
+                <Text style={styles.botAvatarText}>AI</Text>
+              </View>
+              <View>
+                <Text style={styles.headerTitle}>Moto AI — DeepSeek</Text>
+                <View style={styles.onlineRow}>
+                  <View style={styles.onlineDot} />
+                  <Text style={styles.onlineText}>Online</Text>
                 </View>
               </View>
-            )}
-            ListFooterComponent={
-              loading ? (
-                <View style={[styles.bubbleRow, styles.bubbleRowAI]}>
-                  <View style={styles.aiBubbleAvatar}>
-                    <Text style={styles.aiBubbleAvatarText}>AI</Text>
-                  </View>
-                  <View style={styles.typingBubble}>
-                    <TypingDots />
-                  </View>
-                </View>
-              ) : null
-            }
-          />
-
-          <View style={styles.inputBar}>
-            <TextInput
-              style={styles.textInput}
-              value={input}
-              onChangeText={setInput}
-              placeholder="Ask Moto AI anything..."
-              placeholderTextColor={TEXT2}
-              onSubmitEditing={() => send(input)}
-              returnKeyType="send"
-              multiline
-              maxLength={300}
-            />
-            <Pressable
-              style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
-              onPress={() => send(input)}
-              disabled={!input.trim() || loading}
-            >
-              {loading ? <ActivityIndicator color={TEXT} size="small" /> : <Text style={styles.sendIcon}>Go</Text>}
+            </View>
+            <Pressable onPress={closePanel} hitSlop={14} style={styles.closeBtn}>
+              <Text style={styles.closeIcon}>X</Text>
             </Pressable>
           </View>
-        </KeyboardAvoidingView>
-      </Animated.View>
+
+          <KeyboardAvoidingView
+            style={styles.flex}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <FlatList
+              ref={flatRef}
+              data={msgs}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.msgList}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              onContentSizeChange={() => scrollToBottom(true)}
+              ListHeaderComponent={
+                msgs.length === 1 ? (
+                  <View style={styles.quickSection}>
+                    <Text style={styles.quickTitle}>Quick Actions</Text>
+                    <View style={styles.quickGrid}>
+                      {QUICK.map((item) => (
+                        <Pressable key={item.label} style={styles.quickBtn} onPress={() => send(item.prompt)}>
+                          <Text style={styles.quickBtnText}>{item.label}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                ) : null
+              }
+              renderItem={({ item }) => (
+                <View
+                  style={[
+                    styles.bubbleRow,
+                    item.role === 'user' ? styles.bubbleRowUser : styles.bubbleRowAI,
+                  ]}
+                >
+                  {item.role === 'ai' && (
+                    <View style={styles.aiBubbleAvatar}>
+                      <Text style={styles.aiBubbleAvatarText}>AI</Text>
+                    </View>
+                  )}
+                  <View style={[styles.bubble, item.role === 'user' ? styles.bubbleUser : styles.bubbleAI]}>
+                    <Text style={[styles.bubbleText, item.role === 'user' && styles.bubbleTextUser]}>
+                      {item.text}
+                    </Text>
+                    <Text style={styles.bubbleTime}>{formatTime(item.ts)}</Text>
+                  </View>
+                </View>
+              )}
+              ListFooterComponent={
+                loading ? (
+                  <View style={[styles.bubbleRow, styles.bubbleRowAI]}>
+                    <View style={styles.aiBubbleAvatar}>
+                      <Text style={styles.aiBubbleAvatarText}>AI</Text>
+                    </View>
+                    <View style={styles.typingBubble}>
+                      <TypingDots />
+                    </View>
+                  </View>
+                ) : null
+              }
+            />
+
+            <View style={styles.inputBar}>
+              <TextInput
+                style={styles.textInput}
+                value={input}
+                onChangeText={setInput}
+                placeholder="Ask Moto AI anything..."
+                placeholderTextColor={TEXT2}
+                onSubmitEditing={() => send(input)}
+                returnKeyType="send"
+                multiline
+                maxLength={300}
+              />
+              <Pressable
+                style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
+                onPress={() => send(input)}
+                disabled={!input.trim() || loading}
+              >
+                {loading ? <ActivityIndicator color={TEXT} size="small" /> : <Text style={styles.sendIcon}>Go</Text>}
+              </Pressable>
+            </View>
+          </KeyboardAvoidingView>
+        </Animated.View>
+      )}
 
       {!isOpen && (
         <Animated.View style={[styles.fab, { bottom: fabBottom, transform: [{ scale: fabScale }] }]}>
